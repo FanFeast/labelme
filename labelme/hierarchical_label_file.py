@@ -465,13 +465,9 @@ class HierarchicalAnnotationFile:
         Returns:
             Dict with shape counts, hierarchy info, etc.
         """
-        stats = {
-            "total_shapes": len(self.shapes),
-            "root_shapes": len(self.shapes.get_root_shapes()),
-            "shapes_by_label": {},
-            "max_depth": 0,
-            "shapes_with_attributes": 0,
-        }
+        shapes_by_label: dict[str, int] = {}
+        max_depth = 0
+        shapes_with_attributes = 0
 
         def get_depth(shape: HierarchicalShape, depth: int = 1) -> int:
             max_child_depth = depth
@@ -484,18 +480,24 @@ class HierarchicalAnnotationFile:
         for shape in self.shapes:
             # Count by label
             label = shape.label
-            stats["shapes_by_label"][label] = stats["shapes_by_label"].get(label, 0) + 1
+            shapes_by_label[label] = shapes_by_label.get(label, 0) + 1
 
             # Check attributes
             if shape.attributes:
-                stats["shapes_with_attributes"] += 1
+                shapes_with_attributes += 1
 
             # Calculate max depth for root shapes
             if shape.parent_id is None:
                 depth = get_depth(shape)
-                stats["max_depth"] = max(stats["max_depth"], depth)
+                max_depth = max(max_depth, depth)
 
-        return stats
+        return {
+            "total_shapes": len(self.shapes),
+            "root_shapes": len(self.shapes.get_root_shapes()),
+            "shapes_by_label": shapes_by_label,
+            "max_depth": max_depth,
+            "shapes_with_attributes": shapes_with_attributes,
+        }
 
     @classmethod
     def from_labelme_file(cls, labelme_path: str) -> HierarchicalAnnotationFile:

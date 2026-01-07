@@ -212,7 +212,10 @@ class SchemaManager:
         """
         color_hex = self.get_color(class_name)
         color_hex = color_hex.lstrip("#")
-        return tuple(int(color_hex[i : i + 2], 16) for i in (0, 2, 4))
+        r = int(color_hex[0:2], 16)
+        g = int(color_hex[2:4], 16)
+        b = int(color_hex[4:6], 16)
+        return (r, g, b)
 
     def get_shape_types(self, class_name: str) -> list[str]:
         """
