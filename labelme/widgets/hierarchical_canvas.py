@@ -8,19 +8,23 @@ including child drawing mode, parent highlighting, and schema-based coloring.
 from __future__ import annotations
 
 import enum
-from typing import Dict, List, Optional, Any
 
-from qtpy import QtCore, QtGui, QtWidgets
-from qtpy.QtCore import Qt, Signal
+from qtpy import QtCore
+from qtpy import QtGui
+from qtpy import QtWidgets
+from qtpy.QtCore import Qt
+from qtpy.QtCore import Signal
 
+from labelme.hierarchical_shape import HierarchicalShape
+from labelme.hierarchical_shape import ShapeCollection
 from labelme.schema_manager import SchemaManager
-from labelme.hierarchical_shape import HierarchicalShape, ShapeCollection
 
 
 class DrawingMode(enum.Enum):
     """Canvas drawing modes."""
-    EDIT = enum.auto()          # Selecting and editing shapes
-    CREATE = enum.auto()        # Creating new top-level shape
+
+    EDIT = enum.auto()  # Selecting and editing shapes
+    CREATE = enum.auto()  # Creating new top-level shape
     CREATE_CHILD = enum.auto()  # Creating child shape for a parent
 
 
@@ -59,9 +63,7 @@ class HierarchicalCanvas(QtWidgets.QWidget):
     status_message = Signal(str)
 
     def __init__(
-        self,
-        schema_manager: SchemaManager,
-        parent: Optional[QtWidgets.QWidget] = None
+        self, schema_manager: SchemaManager, parent: QtWidgets.QWidget | None = None
     ):
         """
         Initialize hierarchical canvas.
@@ -74,23 +76,23 @@ class HierarchicalCanvas(QtWidgets.QWidget):
 
         self.schema_manager = schema_manager
         self.shapes: ShapeCollection = ShapeCollection()
-        self.pixmap: Optional[QtGui.QPixmap] = None
+        self.pixmap: QtGui.QPixmap | None = None
         self.scale: float = 1.0
         self.offset: QtCore.QPointF = QtCore.QPointF(0, 0)
 
         # Drawing state
         self.mode: DrawingMode = DrawingMode.EDIT
-        self.current_class: Optional[str] = None
-        self.current_points: List[List[float]] = []
+        self.current_class: str | None = None
+        self.current_points: list[list[float]] = []
         self.is_drawing: bool = False
 
         # Child drawing mode
-        self.current_parent: Optional[HierarchicalShape] = None
-        self.child_class: Optional[str] = None
+        self.current_parent: HierarchicalShape | None = None
+        self.child_class: str | None = None
 
         # Selection
-        self.selected_shapes: List[str] = []
-        self.hovered_shape_id: Optional[str] = None
+        self.selected_shapes: list[str] = []
+        self.hovered_shape_id: str | None = None
 
         # Visual settings
         self.point_size: int = 8
@@ -200,7 +202,9 @@ class HierarchicalCanvas(QtWidgets.QWidget):
             parent_name = ""
             child_name = ""
             if self.current_parent:
-                parent_name = self.schema_manager.get_display_name(self.current_parent.label)
+                parent_name = self.schema_manager.get_display_name(
+                    self.current_parent.label
+                )
             if self.child_class:
                 child_name = self.schema_manager.get_display_name(self.child_class)
             self.status_message.emit(f"Drawing {child_name} for {parent_name}")
@@ -277,7 +281,7 @@ class HierarchicalCanvas(QtWidgets.QWidget):
         self.selection_changed.emit([])
         self.update()
 
-    def get_selected_shapes(self) -> List[HierarchicalShape]:
+    def get_selected_shapes(self) -> list[HierarchicalShape]:
         """
         Get currently selected shapes.
 
@@ -404,7 +408,7 @@ class HierarchicalCanvas(QtWidgets.QWidget):
         if shape_id != self.hovered_shape_id:
             self.hovered_shape_id = shape_id
 
-    def _find_shape_at(self, pos: QtCore.QPointF) -> Optional[str]:
+    def _find_shape_at(self, pos: QtCore.QPointF) -> str | None:
         """
         Find shape at position.
 
@@ -419,7 +423,9 @@ class HierarchicalCanvas(QtWidgets.QWidget):
                 return shape.shape_id
         return None
 
-    def _point_in_polygon(self, point: QtCore.QPointF, polygon: List[List[float]]) -> bool:
+    def _point_in_polygon(
+        self, point: QtCore.QPointF, polygon: list[list[float]]
+    ) -> bool:
         """
         Check if point is inside polygon.
 
@@ -538,8 +544,7 @@ class HierarchicalCanvas(QtWidgets.QWidget):
         scaled_width = self.pixmap.width() * self.scale
         scaled_height = self.pixmap.height() * self.scale
         self.offset = QtCore.QPointF(
-            (self.width() - scaled_width) / 2,
-            (self.height() - scaled_height) / 2
+            (self.width() - scaled_width) / 2, (self.height() - scaled_height) / 2
         )
 
         # Draw image
@@ -560,7 +565,9 @@ class HierarchicalCanvas(QtWidgets.QWidget):
         """Draw all shapes."""
         # Draw parent highlight if in child mode
         if self.mode == DrawingMode.CREATE_CHILD and self.current_parent:
-            self._draw_shape_highlight(painter, self.current_parent, self.parent_highlight_color)
+            self._draw_shape_highlight(
+                painter, self.current_parent, self.parent_highlight_color
+            )
 
         # Draw all shapes
         for shape in self.shapes:
@@ -573,7 +580,7 @@ class HierarchicalCanvas(QtWidgets.QWidget):
         painter: QtGui.QPainter,
         shape: HierarchicalShape,
         is_selected: bool = False,
-        is_hovered: bool = False
+        is_hovered: bool = False,
     ) -> None:
         """Draw a single shape."""
         if len(shape.points) < 2:
@@ -599,7 +606,9 @@ class HierarchicalCanvas(QtWidgets.QWidget):
 
         # Create path
         path = QtGui.QPainterPath()
-        first_point = self._map_from_image(QtCore.QPointF(shape.points[0][0], shape.points[0][1]))
+        first_point = self._map_from_image(
+            QtCore.QPointF(shape.points[0][0], shape.points[0][1])
+        )
         path.moveTo(first_point)
 
         for point in shape.points[1:]:
@@ -636,17 +645,16 @@ class HierarchicalCanvas(QtWidgets.QWidget):
             painter.drawText(label_pos, display_name)
 
     def _draw_shape_highlight(
-        self,
-        painter: QtGui.QPainter,
-        shape: HierarchicalShape,
-        color: QtGui.QColor
+        self, painter: QtGui.QPainter, shape: HierarchicalShape, color: QtGui.QColor
     ) -> None:
         """Draw highlight around a shape."""
         if len(shape.points) < 2:
             return
 
         path = QtGui.QPainterPath()
-        first_point = self._map_from_image(QtCore.QPointF(shape.points[0][0], shape.points[0][1]))
+        first_point = self._map_from_image(
+            QtCore.QPointF(shape.points[0][0], shape.points[0][1])
+        )
         path.moveTo(first_point)
 
         for point in shape.points[1:]:
@@ -677,7 +685,9 @@ class HierarchicalCanvas(QtWidgets.QWidget):
                 QtCore.QPointF(self.current_points[i][0], self.current_points[i][1])
             )
             p2 = self._map_from_image(
-                QtCore.QPointF(self.current_points[i+1][0], self.current_points[i+1][1])
+                QtCore.QPointF(
+                    self.current_points[i + 1][0], self.current_points[i + 1][1]
+                )
             )
             painter.drawLine(p1, p2)
 
@@ -689,7 +699,7 @@ class HierarchicalCanvas(QtWidgets.QWidget):
 
     # Public API
 
-    def get_image_size(self) -> Optional[tuple]:
+    def get_image_size(self) -> tuple | None:
         """
         Get the size of the loaded image.
 

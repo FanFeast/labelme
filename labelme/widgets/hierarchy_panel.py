@@ -8,13 +8,15 @@ adding children, and emits signals for shape selection and management.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from qtpy import QtCore
+from qtpy import QtGui
+from qtpy import QtWidgets
+from qtpy.QtCore import Qt
+from qtpy.QtCore import Signal
 
-from qtpy import QtCore, QtGui, QtWidgets
-from qtpy.QtCore import Qt, Signal
-
+from labelme.hierarchical_shape import HierarchicalShape
+from labelme.hierarchical_shape import ShapeCollection
 from labelme.schema_manager import SchemaManager
-from labelme.hierarchical_shape import HierarchicalShape, ShapeCollection
 
 
 class HierarchyPanel(QtWidgets.QTreeWidget):
@@ -42,9 +44,13 @@ class HierarchyPanel(QtWidgets.QTreeWidget):
     shape_double_clicked = Signal(str)  # shape_id
     add_child_requested = Signal(str, str)  # parent_id, child_class
     delete_requested = Signal(str)  # shape_id
-    reparent_requested = Signal(str, str)  # shape_id, new_parent_id (empty string for root)
+    reparent_requested = Signal(
+        str, str
+    )  # shape_id, new_parent_id (empty string for root)
 
-    def __init__(self, schema_manager: SchemaManager, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(
+        self, schema_manager: SchemaManager, parent: QtWidgets.QWidget | None = None
+    ):
         """
         Initialize hierarchy panel.
 
@@ -55,9 +61,9 @@ class HierarchyPanel(QtWidgets.QTreeWidget):
         super().__init__(parent)
 
         self.schema_manager = schema_manager
-        self.shapes: Optional[ShapeCollection] = None
-        self._shape_items: Dict[str, QtWidgets.QTreeWidgetItem] = {}
-        self._class_counters: Dict[str, int] = {}
+        self.shapes: ShapeCollection | None = None
+        self._shape_items: dict[str, QtWidgets.QTreeWidgetItem] = {}
+        self._class_counters: dict[str, int] = {}
 
         self._setup_ui()
         self._connect_signals()
@@ -115,9 +121,7 @@ class HierarchyPanel(QtWidgets.QTreeWidget):
         self.expandAll()
 
     def _add_shape_to_tree(
-        self,
-        shape: HierarchicalShape,
-        parent_item: Optional[QtWidgets.QTreeWidgetItem]
+        self, shape: HierarchicalShape, parent_item: QtWidgets.QTreeWidgetItem | None
     ) -> QtWidgets.QTreeWidgetItem:
         """
         Add a shape and its children to the tree.
@@ -223,7 +227,9 @@ class HierarchyPanel(QtWidgets.QTreeWidget):
             if shape_id:
                 self.shape_selected.emit(shape_id)
 
-    def _on_item_double_clicked(self, item: QtWidgets.QTreeWidgetItem, column: int) -> None:
+    def _on_item_double_clicked(
+        self, item: QtWidgets.QTreeWidgetItem, column: int
+    ) -> None:
         """Handle double-click on item."""
         shape_id = item.data(0, Qt.UserRole)
         if shape_id:
@@ -255,7 +261,9 @@ class HierarchyPanel(QtWidgets.QTreeWidget):
                 action = add_child_menu.addAction(f"Add {child_display}")
                 action.setData(child_class)
                 action.triggered.connect(
-                    lambda checked, c=child_class: self.add_child_requested.emit(shape_id, c)
+                    lambda checked, c=child_class: self.add_child_requested.emit(
+                        shape_id, c
+                    )
                 )
 
         menu.addSeparator()
@@ -379,7 +387,7 @@ class HierarchyPanel(QtWidgets.QTreeWidget):
             item.setSelected(True)
             self.scrollToItem(item)
 
-    def get_selected_shape_id(self) -> Optional[str]:
+    def get_selected_shape_id(self) -> str | None:
         """
         Get the currently selected shape ID.
 
@@ -450,7 +458,9 @@ class HierarchyPanel(QtWidgets.QTreeWidget):
 
             if target_shape and target_id != shape_id:
                 # Validate parent-child relationship
-                if self.schema_manager.validate_parent_child(target_shape.label, shape.label):
+                if self.schema_manager.validate_parent_child(
+                    target_shape.label, shape.label
+                ):
                     event.acceptProposedAction()
                     return
 
@@ -485,7 +495,9 @@ class HierarchyPanel(QtWidgets.QTreeWidget):
             target_id = target_item.data(0, Qt.UserRole)
             target_shape = self.shapes.get_shape(target_id)
 
-            if target_shape and self.schema_manager.validate_parent_child(target_shape.label, shape.label):
+            if target_shape and self.schema_manager.validate_parent_child(
+                target_shape.label, shape.label
+            ):
                 new_parent_id = target_id
             elif self.schema_manager.requires_parent(shape.label):
                 event.ignore()
@@ -543,7 +555,7 @@ class HierarchyPanel(QtWidgets.QTreeWidget):
                     count += 1
         return count
 
-    def get_shapes_at_level(self, level: int) -> List[str]:
+    def get_shapes_at_level(self, level: int) -> list[str]:
         """
         Get shape IDs at a specific depth level.
 

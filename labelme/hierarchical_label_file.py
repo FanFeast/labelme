@@ -14,13 +14,12 @@ from __future__ import annotations
 import base64
 import json
 import os
-from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 # Optional dependencies for image handling
 try:
     import numpy as np
+
     HAS_NUMPY = True
 except ImportError:
     np = None
@@ -28,12 +27,15 @@ except ImportError:
 
 try:
     from PIL import Image
+
     HAS_PIL = True
 except ImportError:
     Image = None
     HAS_PIL = False
 
-from labelme.hierarchical_shape import HierarchicalShape, ShapeCollection, generate_uuid
+from labelme.hierarchical_shape import HierarchicalShape
+from labelme.hierarchical_shape import ShapeCollection
+from labelme.hierarchical_shape import generate_uuid
 
 
 class HierarchicalAnnotationFile:
@@ -71,19 +73,19 @@ class HierarchicalAnnotationFile:
 
     VERSION = "1.0"
 
-    def __init__(self, filename: Optional[str] = None):
+    def __init__(self, filename: str | None = None):
         """
         Initialize annotation file.
 
         Args:
             filename: Optional path to load from
         """
-        self.filename: Optional[str] = filename
-        self.image_path: Optional[str] = None
-        self.image_data: Optional[bytes] = None
-        self.image_height: Optional[int] = None
-        self.image_width: Optional[int] = None
-        self.flags: Dict[str, bool] = {}
+        self.filename: str | None = filename
+        self.image_path: str | None = None
+        self.image_data: bytes | None = None
+        self.image_height: int | None = None
+        self.image_width: int | None = None
+        self.flags: dict[str, bool] = {}
         self.shapes: ShapeCollection = ShapeCollection()
         self.schema_version: str = "1.0"
 
@@ -103,26 +105,26 @@ class HierarchicalAnnotationFile:
         """
         self.filename = filename
 
-        with open(filename, 'r', encoding='utf-8') as f:
+        with open(filename, encoding="utf-8") as f:
             data = json.load(f)
 
         self._load_from_dict(data)
 
-    def _load_from_dict(self, data: Dict[str, Any]) -> None:
+    def _load_from_dict(self, data: dict[str, Any]) -> None:
         """
         Load from dictionary.
 
         Args:
             data: Annotation data dict
         """
-        self.image_path = data.get('imagePath')
-        self.image_height = data.get('imageHeight')
-        self.image_width = data.get('imageWidth')
-        self.flags = data.get('flags', {})
-        self.schema_version = data.get('schemaVersion', '1.0')
+        self.image_path = data.get("imagePath")
+        self.image_height = data.get("imageHeight")
+        self.image_width = data.get("imageWidth")
+        self.flags = data.get("flags", {})
+        self.schema_version = data.get("schemaVersion", "1.0")
 
         # Decode image data if present
-        image_data_str = data.get('imageData')
+        image_data_str = data.get("imageData")
         if image_data_str:
             self.image_data = base64.b64decode(image_data_str)
         else:
@@ -130,17 +132,17 @@ class HierarchicalAnnotationFile:
 
         # Load shapes
         self.shapes.clear()
-        shapes_data = data.get('shapes', [])
+        shapes_data = data.get("shapes", [])
 
         # Check if this is legacy format (no shape_id)
-        is_legacy = shapes_data and 'shape_id' not in shapes_data[0]
+        is_legacy = shapes_data and "shape_id" not in shapes_data[0]
 
         if is_legacy:
             self._load_legacy_shapes(shapes_data)
         else:
             self.shapes.from_dict_list(shapes_data)
 
-    def _load_legacy_shapes(self, shapes_data: List[Dict[str, Any]]) -> None:
+    def _load_legacy_shapes(self, shapes_data: list[dict[str, Any]]) -> None:
         """
         Load shapes from legacy labelme format.
 
@@ -152,21 +154,30 @@ class HierarchicalAnnotationFile:
         for shape_dict in shapes_data:
             shape = HierarchicalShape(
                 shape_id=generate_uuid(),
-                label=shape_dict.get('label', 'unknown'),
-                points=shape_dict.get('points', []),
-                shape_type=shape_dict.get('shape_type', 'polygon'),
-                flags=shape_dict.get('flags', {}),
-                description=shape_dict.get('description', ''),
-                group_id=shape_dict.get('group_id'),
+                label=shape_dict.get("label", "unknown"),
+                points=shape_dict.get("points", []),
+                shape_type=shape_dict.get("shape_type", "polygon"),
+                flags=shape_dict.get("flags", {}),
+                description=shape_dict.get("description", ""),
+                group_id=shape_dict.get("group_id"),
             )
             # Migrate any other_data or custom fields
             for key, value in shape_dict.items():
-                if key not in ['label', 'points', 'shape_type', 'flags', 'description', 'group_id']:
+                if key not in [
+                    "label",
+                    "points",
+                    "shape_type",
+                    "flags",
+                    "description",
+                    "group_id",
+                ]:
                     shape.other_data[key] = value
 
             self.shapes.add_shape(shape)
 
-    def save(self, filename: Optional[str] = None, include_image_data: bool = True) -> None:
+    def save(
+        self, filename: str | None = None, include_image_data: bool = True
+    ) -> None:
         """
         Save annotation to JSON file.
 
@@ -182,10 +193,10 @@ class HierarchicalAnnotationFile:
 
         data = self.to_dict(include_image_data=include_image_data)
 
-        with open(self.filename, 'w', encoding='utf-8') as f:
+        with open(self.filename, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
 
-    def to_dict(self, include_image_data: bool = True) -> Dict[str, Any]:
+    def to_dict(self, include_image_data: bool = True) -> dict[str, Any]:
         """
         Convert to dictionary for serialization.
 
@@ -197,17 +208,17 @@ class HierarchicalAnnotationFile:
         """
         image_data_str = None
         if include_image_data and self.image_data:
-            image_data_str = base64.b64encode(self.image_data).decode('utf-8')
+            image_data_str = base64.b64encode(self.image_data).decode("utf-8")
 
         return {
-            'version': self.VERSION,
-            'imagePath': self.image_path,
-            'imageData': image_data_str,
-            'imageHeight': self.image_height,
-            'imageWidth': self.image_width,
-            'shapes': self.shapes.to_dict_list(),
-            'flags': self.flags,
-            'schemaVersion': self.schema_version,
+            "version": self.VERSION,
+            "imagePath": self.image_path,
+            "imageData": image_data_str,
+            "imageHeight": self.image_height,
+            "imageWidth": self.image_width,
+            "shapes": self.shapes.to_dict_list(),
+            "flags": self.flags,
+            "schemaVersion": self.schema_version,
         }
 
     def load_image(self, image_path: str) -> None:
@@ -217,7 +228,7 @@ class HierarchicalAnnotationFile:
         Args:
             image_path: Path to image file
         """
-        with open(image_path, 'rb') as f:
+        with open(image_path, "rb") as f:
             self.image_data = f.read()
 
         # Get image dimensions (requires PIL)
@@ -243,6 +254,7 @@ class HierarchicalAnnotationFile:
         # Get dimensions from data (requires PIL)
         if HAS_PIL:
             from io import BytesIO
+
             img = Image.open(BytesIO(image_data))
             self.image_width, self.image_height = img.size
         else:
@@ -261,7 +273,9 @@ class HierarchicalAnnotationFile:
         """
         return self.shapes.add_shape(shape)
 
-    def remove_shape(self, shape_id: str, remove_children: bool = True) -> List[HierarchicalShape]:
+    def remove_shape(
+        self, shape_id: str, remove_children: bool = True
+    ) -> list[HierarchicalShape]:
         """
         Remove a shape from the annotation.
 
@@ -274,7 +288,7 @@ class HierarchicalAnnotationFile:
         """
         return self.shapes.remove_shape(shape_id, remove_children=remove_children)
 
-    def get_shape(self, shape_id: str) -> Optional[HierarchicalShape]:
+    def get_shape(self, shape_id: str) -> HierarchicalShape | None:
         """
         Get shape by ID.
 
@@ -286,7 +300,9 @@ class HierarchicalAnnotationFile:
         """
         return self.shapes.get_shape(shape_id)
 
-    def export_coco(self, output_path: str, category_mapping: Optional[Dict[str, int]] = None) -> None:
+    def export_coco(
+        self, output_path: str, category_mapping: dict[str, int] | None = None
+    ) -> None:
         """
         Export annotations to COCO format.
 
@@ -297,20 +313,23 @@ class HierarchicalAnnotationFile:
         # Build categories
         if category_mapping is None:
             labels = set(s.label for s in self.shapes)
-            category_mapping = {label: idx + 1 for idx, label in enumerate(sorted(labels))}
+            category_mapping = {
+                label: idx + 1 for idx, label in enumerate(sorted(labels))
+            }
 
         categories = [
-            {'id': cat_id, 'name': label}
-            for label, cat_id in category_mapping.items()
+            {"id": cat_id, "name": label} for label, cat_id in category_mapping.items()
         ]
 
         # Build images
-        images = [{
-            'id': 1,
-            'file_name': self.image_path or 'image.jpg',
-            'width': self.image_width or 0,
-            'height': self.image_height or 0,
-        }]
+        images = [
+            {
+                "id": 1,
+                "file_name": self.image_path or "image.jpg",
+                "width": self.image_width or 0,
+                "height": self.image_height or 0,
+            }
+        ]
 
         # Build annotations
         annotations = []
@@ -335,45 +354,51 @@ class HierarchicalAnnotationFile:
 
             # Calculate area (polygon area using shoelace formula)
             n = len(points)
-            area = abs(sum(
-                points[i][0] * points[(i + 1) % n][1] - points[(i + 1) % n][0] * points[i][1]
-                for i in range(n)
-            )) / 2
+            area = (
+                abs(
+                    sum(
+                        points[i][0] * points[(i + 1) % n][1]
+                        - points[(i + 1) % n][0] * points[i][1]
+                        for i in range(n)
+                    )
+                )
+                / 2
+            )
 
             ann = {
-                'id': idx,
-                'image_id': 1,
-                'category_id': category_mapping[shape.label],
-                'segmentation': segmentation,
-                'bbox': bbox,
-                'area': area,
-                'iscrowd': 0,
+                "id": idx,
+                "image_id": 1,
+                "category_id": category_mapping[shape.label],
+                "segmentation": segmentation,
+                "bbox": bbox,
+                "area": area,
+                "iscrowd": 0,
             }
 
             # Add hierarchical metadata
             if shape.parent_id:
-                ann['parent_id'] = shape.parent_id
+                ann["parent_id"] = shape.parent_id
             if shape.children_ids:
-                ann['children_ids'] = shape.children_ids
+                ann["children_ids"] = shape.children_ids
             if shape.attributes:
-                ann['attributes'] = shape.attributes
+                ann["attributes"] = shape.attributes
 
             annotations.append(ann)
 
         coco_data = {
-            'images': images,
-            'annotations': annotations,
-            'categories': categories,
+            "images": images,
+            "annotations": annotations,
+            "categories": categories,
         }
 
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             json.dump(coco_data, f, indent=2)
 
     def export_yolo(
         self,
         output_dir: str,
-        category_mapping: Optional[Dict[str, int]] = None,
-        format_type: str = 'segment'
+        category_mapping: dict[str, int] | None = None,
+        format_type: str = "segment",
     ) -> None:
         """
         Export annotations to YOLO format.
@@ -402,7 +427,7 @@ class HierarchicalAnnotationFile:
             class_id = category_mapping[shape.label]
             points = shape.points
 
-            if format_type == 'segment' and len(points) >= 3:
+            if format_type == "segment" and len(points) >= 3:
                 # YOLO segment format: class_id x1 y1 x2 y2 ... (normalized)
                 coords = []
                 for x, y in points:
@@ -410,8 +435,8 @@ class HierarchicalAnnotationFile:
                 line = f"{class_id} " + " ".join(f"{c:.6f}" for c in coords)
                 lines.append(line)
 
-            elif format_type == 'detect' and len(points) >= 2:
-                # YOLO detect format: class_id x_center y_center width height (normalized)
+            elif format_type == "detect" and len(points) >= 2:
+                # YOLO detect: class_id x_center y_center width height
                 xs = [p[0] for p in points]
                 ys = [p[1] for p in points]
                 x_min, x_max = min(xs), max(xs)
@@ -422,16 +447,18 @@ class HierarchicalAnnotationFile:
                 width = (x_max - x_min) / img_w
                 height = (y_max - y_min) / img_h
 
-                line = f"{class_id} {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}"
+                line = (
+                    f"{class_id} {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}"
+                )
                 lines.append(line)
 
         # Save to txt file
-        base_name = os.path.splitext(self.image_path or 'image')[0]
+        base_name = os.path.splitext(self.image_path or "image")[0]
         txt_path = os.path.join(output_dir, f"{base_name}.txt")
-        with open(txt_path, 'w') as f:
-            f.write('\n'.join(lines))
+        with open(txt_path, "w") as f:
+            f.write("\n".join(lines))
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """
         Get annotation statistics.
 
@@ -439,11 +466,11 @@ class HierarchicalAnnotationFile:
             Dict with shape counts, hierarchy info, etc.
         """
         stats = {
-            'total_shapes': len(self.shapes),
-            'root_shapes': len(self.shapes.get_root_shapes()),
-            'shapes_by_label': {},
-            'max_depth': 0,
-            'shapes_with_attributes': 0,
+            "total_shapes": len(self.shapes),
+            "root_shapes": len(self.shapes.get_root_shapes()),
+            "shapes_by_label": {},
+            "max_depth": 0,
+            "shapes_with_attributes": 0,
         }
 
         def get_depth(shape: HierarchicalShape, depth: int = 1) -> int:
@@ -457,21 +484,21 @@ class HierarchicalAnnotationFile:
         for shape in self.shapes:
             # Count by label
             label = shape.label
-            stats['shapes_by_label'][label] = stats['shapes_by_label'].get(label, 0) + 1
+            stats["shapes_by_label"][label] = stats["shapes_by_label"].get(label, 0) + 1
 
             # Check attributes
             if shape.attributes:
-                stats['shapes_with_attributes'] += 1
+                stats["shapes_with_attributes"] += 1
 
             # Calculate max depth for root shapes
             if shape.parent_id is None:
                 depth = get_depth(shape)
-                stats['max_depth'] = max(stats['max_depth'], depth)
+                stats["max_depth"] = max(stats["max_depth"], depth)
 
         return stats
 
     @classmethod
-    def from_labelme_file(cls, labelme_path: str) -> 'HierarchicalAnnotationFile':
+    def from_labelme_file(cls, labelme_path: str) -> HierarchicalAnnotationFile:
         """
         Create from legacy labelme JSON file.
 
@@ -485,7 +512,7 @@ class HierarchicalAnnotationFile:
         instance.load(labelme_path)
         return instance
 
-    def validate(self) -> List[str]:
+    def validate(self) -> list[str]:
         """
         Validate the annotation file.
 
@@ -510,8 +537,10 @@ class HierarchicalAnnotationFile:
             if len(shape.points) < 2:
                 errors.append(f"Shape {shape.shape_id[:8]} has fewer than 2 points")
 
-            if shape.shape_type == 'polygon' and len(shape.points) < 3:
-                errors.append(f"Polygon shape {shape.shape_id[:8]} has fewer than 3 points")
+            if shape.shape_type == "polygon" and len(shape.points) < 3:
+                errors.append(
+                    f"Polygon shape {shape.shape_id[:8]} has fewer than 3 points"
+                )
 
         return errors
 
@@ -532,7 +561,7 @@ def load_annotation(filename: str) -> HierarchicalAnnotationFile:
 def save_annotation(
     annotation: HierarchicalAnnotationFile,
     filename: str,
-    include_image_data: bool = True
+    include_image_data: bool = True,
 ) -> None:
     """
     Convenience function to save an annotation file.

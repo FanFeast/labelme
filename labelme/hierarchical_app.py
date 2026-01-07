@@ -9,18 +9,22 @@ from __future__ import annotations
 
 import os
 import sys
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from qtpy import QtCore, QtGui, QtWidgets
-from qtpy.QtCore import Qt, Slot
+from qtpy import QtCore
+from qtpy import QtGui
+from qtpy import QtWidgets
+from qtpy.QtCore import Qt
+from qtpy.QtCore import Slot
 
-from labelme.schema_manager import SchemaManager
-from labelme.hierarchical_shape import HierarchicalShape, ShapeCollection
 from labelme.hierarchical_label_file import HierarchicalAnnotationFile
+from labelme.hierarchical_shape import HierarchicalShape
+from labelme.hierarchical_shape import ShapeCollection
+from labelme.schema_manager import SchemaManager
+from labelme.widgets.attribute_panel import AttributePanelDock
+from labelme.widgets.hierarchical_canvas import DrawingMode
+from labelme.widgets.hierarchical_canvas import HierarchicalCanvas
 from labelme.widgets.hierarchy_panel import HierarchyPanel
-from labelme.widgets.attribute_panel import AttributePanel, AttributePanelDock
-from labelme.widgets.hierarchical_canvas import HierarchicalCanvas, DrawingMode
 
 
 class HierarchicalLabelmeApp(QtWidgets.QMainWindow):
@@ -36,9 +40,7 @@ class HierarchicalLabelmeApp(QtWidgets.QMainWindow):
     """
 
     def __init__(
-        self,
-        schema_path: Optional[str] = None,
-        parent: Optional[QtWidgets.QWidget] = None
+        self, schema_path: str | None = None, parent: QtWidgets.QWidget | None = None
     ):
         """
         Initialize the application.
@@ -72,14 +74,14 @@ class HierarchicalLabelmeApp(QtWidgets.QMainWindow):
 
         # Initialize data
         self.shapes = ShapeCollection()
-        self.annotation_file: Optional[HierarchicalAnnotationFile] = None
-        self.current_file: Optional[str] = None
-        self.image_path: Optional[str] = None
+        self.annotation_file: HierarchicalAnnotationFile | None = None
+        self.current_file: str | None = None
+        self.image_path: str | None = None
         self.is_dirty: bool = False
 
         # Undo/Redo stacks
-        self.undo_stack: List[List[Dict[str, Any]]] = []
-        self.redo_stack: List[List[Dict[str, Any]]] = []
+        self.undo_stack: list[list[dict[str, Any]]] = []
+        self.redo_stack: list[list[dict[str, Any]]] = []
         self.max_undo: int = 50
 
         # Setup UI
@@ -113,8 +115,8 @@ class HierarchicalLabelmeApp(QtWidgets.QMainWindow):
         self.hierarchy_panel.set_shapes(self.shapes)
         self.hierarchy_dock.setWidget(self.hierarchy_panel)
         self.hierarchy_dock.setFeatures(
-            QtWidgets.QDockWidget.DockWidgetMovable |
-            QtWidgets.QDockWidget.DockWidgetFloatable
+            QtWidgets.QDockWidget.DockWidgetMovable
+            | QtWidgets.QDockWidget.DockWidgetFloatable
         )
         self.hierarchy_dock.setMinimumWidth(200)
         self.addDockWidget(Qt.LeftDockWidgetArea, self.hierarchy_dock)
@@ -213,7 +215,9 @@ class HierarchicalLabelmeApp(QtWidgets.QMainWindow):
             lambda checked: self.hierarchy_dock.setVisible(checked)
         )
 
-        self.action_toggle_attributes = QtWidgets.QAction("Toggle Attribute Panel", self)
+        self.action_toggle_attributes = QtWidgets.QAction(
+            "Toggle Attribute Panel", self
+        )
         self.action_toggle_attributes.setCheckable(True)
         self.action_toggle_attributes.setChecked(True)
         self.action_toggle_attributes.triggered.connect(
@@ -331,10 +335,10 @@ class HierarchicalLabelmeApp(QtWidgets.QMainWindow):
                 self,
                 "Save Changes?",
                 "There are unsaved changes. Save before closing?",
-                QtWidgets.QMessageBox.Save |
-                QtWidgets.QMessageBox.Discard |
-                QtWidgets.QMessageBox.Cancel,
                 QtWidgets.QMessageBox.Save
+                | QtWidgets.QMessageBox.Discard
+                | QtWidgets.QMessageBox.Cancel,
+                QtWidgets.QMessageBox.Save,
             )
 
             if reply == QtWidgets.QMessageBox.Save:
@@ -357,7 +361,7 @@ class HierarchicalLabelmeApp(QtWidgets.QMainWindow):
             self,
             "Open Image",
             "",
-            "Images (*.png *.jpg *.jpeg *.bmp *.gif *.tiff);;All Files (*)"
+            "Images (*.png *.jpg *.jpeg *.bmp *.gif *.tiff);;All Files (*)",
         )
 
         if file_path:
@@ -375,9 +379,7 @@ class HierarchicalLabelmeApp(QtWidgets.QMainWindow):
         """
         if not self.canvas.load_image(file_path):
             QtWidgets.QMessageBox.warning(
-                self,
-                "Error",
-                f"Could not load image: {file_path}"
+                self, "Error", f"Could not load image: {file_path}"
             )
             return False
 
@@ -392,7 +394,7 @@ class HierarchicalLabelmeApp(QtWidgets.QMainWindow):
                 "Load Annotation?",
                 f"Found existing annotation: {os.path.basename(json_path)}\n\nLoad it?",
                 QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-                QtWidgets.QMessageBox.Yes
+                QtWidgets.QMessageBox.Yes,
             )
             if reply == QtWidgets.QMessageBox.Yes:
                 self._load_annotation(json_path)
@@ -404,10 +406,7 @@ class HierarchicalLabelmeApp(QtWidgets.QMainWindow):
     def open_annotation(self) -> None:
         """Open an annotation file."""
         file_path, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self,
-            "Open Annotation",
-            "",
-            "JSON Files (*.json);;All Files (*)"
+            self, "Open Annotation", "", "JSON Files (*.json);;All Files (*)"
         )
 
         if file_path:
@@ -447,9 +446,7 @@ class HierarchicalLabelmeApp(QtWidgets.QMainWindow):
 
         except Exception as e:
             QtWidgets.QMessageBox.warning(
-                self,
-                "Error",
-                f"Could not load annotation: {e}"
+                self, "Error", f"Could not load annotation: {e}"
             )
             return False
 
@@ -479,10 +476,7 @@ class HierarchicalLabelmeApp(QtWidgets.QMainWindow):
             default_path = os.path.splitext(self.image_path)[0] + ".json"
 
         file_path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self,
-            "Save Annotation",
-            default_path,
-            "JSON Files (*.json);;All Files (*)"
+            self, "Save Annotation", default_path, "JSON Files (*.json);;All Files (*)"
         )
 
         if file_path:
@@ -520,9 +514,7 @@ class HierarchicalLabelmeApp(QtWidgets.QMainWindow):
 
         except Exception as e:
             QtWidgets.QMessageBox.warning(
-                self,
-                "Error",
-                f"Could not save annotation: {e}"
+                self, "Error", f"Could not save annotation: {e}"
             )
             return False
 
@@ -530,10 +522,7 @@ class HierarchicalLabelmeApp(QtWidgets.QMainWindow):
     def export_coco(self) -> None:
         """Export annotations to COCO format."""
         file_path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self,
-            "Export COCO",
-            "",
-            "JSON Files (*.json);;All Files (*)"
+            self, "Export COCO", "", "JSON Files (*.json);;All Files (*)"
         )
 
         if file_path:
@@ -542,7 +531,9 @@ class HierarchicalLabelmeApp(QtWidgets.QMainWindow):
                     self.annotation_file = HierarchicalAnnotationFile()
                     self.annotation_file.shapes = self.shapes
                     if self.image_path:
-                        self.annotation_file.image_path = os.path.basename(self.image_path)
+                        self.annotation_file.image_path = os.path.basename(
+                            self.image_path
+                        )
                         size = self.canvas.get_image_size()
                         if size:
                             self.annotation_file.image_width = size[0]
@@ -556,11 +547,7 @@ class HierarchicalLabelmeApp(QtWidgets.QMainWindow):
     @Slot()
     def export_yolo(self) -> None:
         """Export annotations to YOLO format."""
-        dir_path = QtWidgets.QFileDialog.getExistingDirectory(
-            self,
-            "Export YOLO",
-            ""
-        )
+        dir_path = QtWidgets.QFileDialog.getExistingDirectory(self, "Export YOLO", "")
 
         if dir_path:
             try:
@@ -568,7 +555,9 @@ class HierarchicalLabelmeApp(QtWidgets.QMainWindow):
                     self.annotation_file = HierarchicalAnnotationFile()
                     self.annotation_file.shapes = self.shapes
                     if self.image_path:
-                        self.annotation_file.image_path = os.path.basename(self.image_path)
+                        self.annotation_file.image_path = os.path.basename(
+                            self.image_path
+                        )
                         size = self.canvas.get_image_size()
                         if size:
                             self.annotation_file.image_width = size[0]
@@ -667,7 +656,7 @@ class HierarchicalLabelmeApp(QtWidgets.QMainWindow):
             QtWidgets.QMessageBox.warning(
                 self,
                 "Invalid Relationship",
-                f"Cannot add {child_class} as child of {parent.label}"
+                f"Cannot add {child_class} as child of {parent.label}",
             )
             return
 
@@ -691,16 +680,16 @@ class HierarchicalLabelmeApp(QtWidgets.QMainWindow):
                 self,
                 "Delete Shape",
                 "This shape has children. Delete children too?",
-                QtWidgets.QMessageBox.Yes |
-                QtWidgets.QMessageBox.No |
-                QtWidgets.QMessageBox.Cancel,
                 QtWidgets.QMessageBox.Yes
+                | QtWidgets.QMessageBox.No
+                | QtWidgets.QMessageBox.Cancel,
+                QtWidgets.QMessageBox.Yes,
             )
 
             if reply == QtWidgets.QMessageBox.Cancel:
                 return
 
-            remove_children = (reply == QtWidgets.QMessageBox.Yes)
+            remove_children = reply == QtWidgets.QMessageBox.Yes
         else:
             remove_children = True
 
@@ -729,20 +718,20 @@ class HierarchicalLabelmeApp(QtWidgets.QMainWindow):
                 return
 
             # Validate
-            if not self.schema_manager.validate_parent_child(new_parent.label, shape.label):
+            if not self.schema_manager.validate_parent_child(
+                new_parent.label, shape.label
+            ):
                 QtWidgets.QMessageBox.warning(
                     self,
                     "Invalid Relationship",
-                    f"Cannot move {shape.label} under {new_parent.label}"
+                    f"Cannot move {shape.label} under {new_parent.label}",
                 )
                 return
         else:
             # Moving to root - check if allowed
             if self.schema_manager.requires_parent(shape.label):
                 QtWidgets.QMessageBox.warning(
-                    self,
-                    "Invalid Operation",
-                    f"{shape.label} requires a parent"
+                    self, "Invalid Operation", f"{shape.label} requires a parent"
                 )
                 return
 
@@ -848,8 +837,12 @@ class HierarchicalLabelmeApp(QtWidgets.QMainWindow):
             if all_shapes:
                 if selected:
                     idx = next(
-                        (i for i, s in enumerate(all_shapes) if s.shape_id == selected[0].shape_id),
-                        -1
+                        (
+                            i
+                            for i, s in enumerate(all_shapes)
+                            if s.shape_id == selected[0].shape_id
+                        ),
+                        -1,
                     )
                     next_idx = (idx + 1) % len(all_shapes)
                 else:

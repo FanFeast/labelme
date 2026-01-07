@@ -8,13 +8,14 @@ and conditional visibility.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Callable
+from typing import Any
 
-from qtpy import QtCore, QtGui, QtWidgets
-from qtpy.QtCore import Qt, Signal
+from qtpy import QtWidgets
+from qtpy.QtCore import Qt
+from qtpy.QtCore import Signal
 
-from labelme.schema_manager import SchemaManager
 from labelme.hierarchical_shape import HierarchicalShape
+from labelme.schema_manager import SchemaManager
 
 
 class AttributePanel(QtWidgets.QWidget):
@@ -35,7 +36,9 @@ class AttributePanel(QtWidgets.QWidget):
 
     attribute_changed = Signal(str, str, object)  # shape_id, attr_name, value
 
-    def __init__(self, schema_manager: SchemaManager, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(
+        self, schema_manager: SchemaManager, parent: QtWidgets.QWidget | None = None
+    ):
         """
         Initialize attribute panel.
 
@@ -46,9 +49,9 @@ class AttributePanel(QtWidgets.QWidget):
         super().__init__(parent)
 
         self.schema_manager = schema_manager
-        self.current_shape: Optional[HierarchicalShape] = None
-        self._widgets: Dict[str, QtWidgets.QWidget] = {}
-        self._labels: Dict[str, QtWidgets.QLabel] = {}
+        self.current_shape: HierarchicalShape | None = None
+        self._widgets: dict[str, QtWidgets.QWidget] = {}
+        self._labels: dict[str, QtWidgets.QLabel] = {}
         self._updating: bool = False
 
         self._setup_ui()
@@ -101,7 +104,7 @@ class AttributePanel(QtWidgets.QWidget):
         self.info_label.setWordWrap(True)
         layout.addWidget(self.info_label)
 
-    def set_shape(self, shape: Optional[HierarchicalShape]) -> None:
+    def set_shape(self, shape: HierarchicalShape | None) -> None:
         """
         Set the shape to edit.
 
@@ -161,7 +164,7 @@ class AttributePanel(QtWidgets.QWidget):
         self._widgets.clear()
         self._labels.clear()
 
-    def _create_field(self, attr_name: str, attr_config: Dict[str, Any]) -> None:
+    def _create_field(self, attr_name: str, attr_config: dict[str, Any]) -> None:
         """
         Create a form field for an attribute.
 
@@ -169,9 +172,9 @@ class AttributePanel(QtWidgets.QWidget):
             attr_name: Attribute name
             attr_config: Attribute configuration from schema
         """
-        attr_type = attr_config.get('type', 'text')
-        label_text = attr_config.get('label', attr_name.replace('_', ' ').title())
-        required = attr_config.get('required', False)
+        attr_type = attr_config.get("type", "text")
+        label_text = attr_config.get("label", attr_name.replace("_", " ").title())
+        required = attr_config.get("required", False)
 
         if required:
             label_text += " *"
@@ -183,15 +186,15 @@ class AttributePanel(QtWidgets.QWidget):
         # Create widget based on type
         widget: QtWidgets.QWidget
 
-        if attr_type == 'checkbox':
+        if attr_type == "checkbox":
             widget = self._create_checkbox(attr_name, attr_config)
-        elif attr_type == 'dropdown':
+        elif attr_type == "dropdown":
             widget = self._create_dropdown(attr_name, attr_config)
-        elif attr_type == 'slider':
+        elif attr_type == "slider":
             widget = self._create_slider(attr_name, attr_config)
-        elif attr_type == 'spinbox':
+        elif attr_type == "spinbox":
             widget = self._create_spinbox(attr_name, attr_config)
-        elif attr_type == 'text':
+        elif attr_type == "text":
             widget = self._create_text(attr_name, attr_config)
         else:
             # Fallback to text
@@ -200,13 +203,17 @@ class AttributePanel(QtWidgets.QWidget):
         self._widgets[attr_name] = widget
         self.form_layout.addRow(label, widget)
 
-    def _create_checkbox(self, attr_name: str, config: Dict[str, Any]) -> QtWidgets.QCheckBox:
+    def _create_checkbox(
+        self, attr_name: str, config: dict[str, Any]
+    ) -> QtWidgets.QCheckBox:
         """Create a checkbox widget."""
         checkbox = QtWidgets.QCheckBox()
 
         # Set initial value
         if self.current_shape:
-            value = self.current_shape.get_attribute(attr_name, config.get('default', False))
+            value = self.current_shape.get_attribute(
+                attr_name, config.get("default", False)
+            )
             checkbox.setChecked(bool(value))
 
         # Connect signal
@@ -216,16 +223,18 @@ class AttributePanel(QtWidgets.QWidget):
 
         return checkbox
 
-    def _create_dropdown(self, attr_name: str, config: Dict[str, Any]) -> QtWidgets.QComboBox:
+    def _create_dropdown(
+        self, attr_name: str, config: dict[str, Any]
+    ) -> QtWidgets.QComboBox:
         """Create a dropdown widget."""
         combo = QtWidgets.QComboBox()
 
-        options = config.get('options', [])
+        options = config.get("options", [])
         combo.addItems(options)
 
         # Set initial value
         if self.current_shape:
-            value = self.current_shape.get_attribute(attr_name, config.get('default'))
+            value = self.current_shape.get_attribute(attr_name, config.get("default"))
             if value in options:
                 combo.setCurrentText(value)
 
@@ -236,16 +245,18 @@ class AttributePanel(QtWidgets.QWidget):
 
         return combo
 
-    def _create_slider(self, attr_name: str, config: Dict[str, Any]) -> QtWidgets.QWidget:
+    def _create_slider(
+        self, attr_name: str, config: dict[str, Any]
+    ) -> QtWidgets.QWidget:
         """Create a slider widget with value label."""
         container = QtWidgets.QWidget()
         layout = QtWidgets.QHBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)
 
-        min_val = config.get('min', 0)
-        max_val = config.get('max', 100)
-        step = config.get('step', 1)
+        min_val = config.get("min", 0)
+        max_val = config.get("max", 100)
+        step = config.get("step", 1)
 
         slider = QtWidgets.QSlider(Qt.Horizontal)
         slider.setMinimum(min_val)
@@ -260,7 +271,9 @@ class AttributePanel(QtWidgets.QWidget):
 
         # Set initial value
         if self.current_shape:
-            value = self.current_shape.get_attribute(attr_name, config.get('default', min_val))
+            value = self.current_shape.get_attribute(
+                attr_name, config.get("default", min_val)
+            )
             slider.setValue(int(value))
             value_label.setText(str(int(value)))
 
@@ -280,13 +293,15 @@ class AttributePanel(QtWidgets.QWidget):
 
         return container
 
-    def _create_spinbox(self, attr_name: str, config: Dict[str, Any]) -> QtWidgets.QSpinBox:
+    def _create_spinbox(
+        self, attr_name: str, config: dict[str, Any]
+    ) -> QtWidgets.QSpinBox:
         """Create a spinbox widget."""
         spinbox = QtWidgets.QSpinBox()
 
-        min_val = config.get('min', 0)
-        max_val = config.get('max', 999999)
-        step = config.get('step', 1)
+        min_val = config.get("min", 0)
+        max_val = config.get("max", 999999)
+        step = config.get("step", 1)
 
         spinbox.setMinimum(min_val)
         spinbox.setMaximum(max_val)
@@ -294,31 +309,35 @@ class AttributePanel(QtWidgets.QWidget):
 
         # Set initial value
         if self.current_shape:
-            value = self.current_shape.get_attribute(attr_name, config.get('default', min_val))
+            value = self.current_shape.get_attribute(
+                attr_name, config.get("default", min_val)
+            )
             spinbox.setValue(int(value))
 
         # Connect signal
-        spinbox.valueChanged.connect(
-            lambda val: self._on_value_changed(attr_name, val)
-        )
+        spinbox.valueChanged.connect(lambda val: self._on_value_changed(attr_name, val))
 
         return spinbox
 
-    def _create_text(self, attr_name: str, config: Dict[str, Any]) -> QtWidgets.QLineEdit:
+    def _create_text(
+        self, attr_name: str, config: dict[str, Any]
+    ) -> QtWidgets.QLineEdit:
         """Create a text input widget."""
         line_edit = QtWidgets.QLineEdit()
 
-        max_length = config.get('max_length')
+        max_length = config.get("max_length")
         if max_length:
             line_edit.setMaxLength(max_length)
 
-        placeholder = config.get('placeholder', '')
+        placeholder = config.get("placeholder", "")
         if placeholder:
             line_edit.setPlaceholderText(placeholder)
 
         # Set initial value
         if self.current_shape:
-            value = self.current_shape.get_attribute(attr_name, config.get('default', ''))
+            value = self.current_shape.get_attribute(
+                attr_name, config.get("default", "")
+            )
             line_edit.setText(str(value))
 
         # Connect signal
@@ -350,14 +369,12 @@ class AttributePanel(QtWidgets.QWidget):
         if not self.current_shape:
             return
 
-        attrs_config = self.schema_manager.get_attributes_config(self.current_shape.label)
+        self.schema_manager.get_attributes_config(self.current_shape.label)
         current_values = self.current_shape.attributes
 
         for attr_name, widget in self._widgets.items():
             visible = self.schema_manager.check_attribute_visibility(
-                self.current_shape.label,
-                attr_name,
-                current_values
+                self.current_shape.label, attr_name, current_values
             )
 
             widget.setVisible(visible)
@@ -366,7 +383,7 @@ class AttributePanel(QtWidgets.QWidget):
             if attr_name in self._labels:
                 self._labels[attr_name].setVisible(visible)
 
-    def get_values(self) -> Dict[str, Any]:
+    def get_values(self) -> dict[str, Any]:
         """
         Get all current attribute values.
 
@@ -378,7 +395,7 @@ class AttributePanel(QtWidgets.QWidget):
 
         return self.current_shape.attributes.copy()
 
-    def set_values(self, values: Dict[str, Any]) -> None:
+    def set_values(self, values: dict[str, Any]) -> None:
         """
         Set multiple attribute values.
 
@@ -418,7 +435,7 @@ class AttributePanel(QtWidgets.QWidget):
             widget.setValue(int(value))
         elif isinstance(widget, QtWidgets.QLineEdit):
             widget.setText(str(value))
-        elif hasattr(widget, 'slider'):
+        elif hasattr(widget, "slider"):
             # Slider container
             widget.slider.setValue(int(value))
             widget.value_label.setText(str(int(value)))
@@ -442,17 +459,19 @@ class AttributePanel(QtWidgets.QWidget):
         if not self.current_shape:
             return True
 
-        attrs_config = self.schema_manager.get_attributes_config(self.current_shape.label)
+        attrs_config = self.schema_manager.get_attributes_config(
+            self.current_shape.label
+        )
 
         for attr_name, config in attrs_config.items():
-            if config.get('required', False):
+            if config.get("required", False):
                 value = self.current_shape.get_attribute(attr_name)
-                if value is None or value == '':
+                if value is None or value == "":
                     return False
 
         return True
 
-    def get_validation_errors(self) -> List[str]:
+    def get_validation_errors(self) -> list[str]:
         """
         Get list of validation errors.
 
@@ -464,14 +483,16 @@ class AttributePanel(QtWidgets.QWidget):
         if not self.current_shape:
             return errors
 
-        attrs_config = self.schema_manager.get_attributes_config(self.current_shape.label)
+        attrs_config = self.schema_manager.get_attributes_config(
+            self.current_shape.label
+        )
 
         for attr_name, config in attrs_config.items():
             # Check required
-            if config.get('required', False):
+            if config.get("required", False):
                 value = self.current_shape.get_attribute(attr_name)
-                if value is None or value == '':
-                    label = config.get('label', attr_name)
+                if value is None or value == "":
+                    label = config.get("label", attr_name)
                     errors.append(f"{label} is required")
 
             # Validate value
@@ -490,9 +511,7 @@ class AttributePanelDock(QtWidgets.QDockWidget):
     """Dock widget wrapper for AttributePanel."""
 
     def __init__(
-        self,
-        schema_manager: SchemaManager,
-        parent: Optional[QtWidgets.QWidget] = None
+        self, schema_manager: SchemaManager, parent: QtWidgets.QWidget | None = None
     ):
         """
         Initialize dock widget.
@@ -508,11 +527,11 @@ class AttributePanelDock(QtWidgets.QDockWidget):
 
         # Dock settings
         self.setFeatures(
-            QtWidgets.QDockWidget.DockWidgetMovable |
-            QtWidgets.QDockWidget.DockWidgetFloatable
+            QtWidgets.QDockWidget.DockWidgetMovable
+            | QtWidgets.QDockWidget.DockWidgetFloatable
         )
         self.setMinimumWidth(200)
 
-    def set_shape(self, shape: Optional[HierarchicalShape]) -> None:
+    def set_shape(self, shape: HierarchicalShape | None) -> None:
         """Set shape for the panel."""
         self.panel.set_shape(shape)

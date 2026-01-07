@@ -8,15 +8,16 @@ schema-driven attributes.
 
 from __future__ import annotations
 
-import copy
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from dataclasses import field
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Set, TYPE_CHECKING
+from typing import Any
 
 # Qt is optional - only needed for get_qpoints()
 try:
     from qtpy import QtCore
+
     HAS_QT = True
 except ImportError:
     HAS_QT = False
@@ -57,28 +58,28 @@ class HierarchicalShape:
 
     # Required fields
     label: str
-    points: List[List[float]] = field(default_factory=list)
+    points: list[list[float]] = field(default_factory=list)
 
     # Identity
     shape_id: str = field(default_factory=generate_uuid)
     shape_type: str = "polygon"
 
     # Hierarchy
-    parent_id: Optional[str] = None
-    children_ids: List[str] = field(default_factory=list)
+    parent_id: str | None = None
+    children_ids: list[str] = field(default_factory=list)
 
     # Attributes and metadata
-    attributes: Dict[str, Any] = field(default_factory=dict)
-    flags: Dict[str, bool] = field(default_factory=dict)
+    attributes: dict[str, Any] = field(default_factory=dict)
+    flags: dict[str, bool] = field(default_factory=dict)
     description: str = ""
-    group_id: Optional[int] = None
+    group_id: int | None = None
 
     # Timestamps
     created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
     modified_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
 
     # Extensible data
-    other_data: Dict[str, Any] = field(default_factory=dict)
+    other_data: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         """Ensure mutable defaults are properly initialized."""
@@ -93,7 +94,7 @@ class HierarchicalShape:
         if self.other_data is None:
             self.other_data = {}
 
-    def set_parent(self, parent: Optional[HierarchicalShape]) -> None:
+    def set_parent(self, parent: HierarchicalShape | None) -> None:
         """
         Set the parent of this shape.
 
@@ -198,13 +199,13 @@ class HierarchicalShape:
             self.points[index] = [x, y]
             self.update_metadata()
 
-    def get_qpoints(self) -> List:
+    def get_qpoints(self) -> list:
         """Get points as QPointF list for Qt rendering."""
         if not HAS_QT:
             raise RuntimeError("Qt is not available. Install qtpy to use this method.")
         return [QtCore.QPointF(p[0], p[1]) for p in self.points]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         Convert shape to dictionary for serialization.
 
@@ -212,23 +213,23 @@ class HierarchicalShape:
             Dict representation of the shape
         """
         return {
-            'shape_id': self.shape_id,
-            'label': self.label,
-            'points': self.points,
-            'shape_type': self.shape_type,
-            'parent_id': self.parent_id,
-            'children_ids': self.children_ids.copy(),
-            'attributes': self.attributes.copy(),
-            'flags': self.flags.copy(),
-            'description': self.description,
-            'group_id': self.group_id,
-            'created_at': self.created_at,
-            'modified_at': self.modified_at,
-            'other_data': self.other_data.copy(),
+            "shape_id": self.shape_id,
+            "label": self.label,
+            "points": self.points,
+            "shape_type": self.shape_type,
+            "parent_id": self.parent_id,
+            "children_ids": self.children_ids.copy(),
+            "attributes": self.attributes.copy(),
+            "flags": self.flags.copy(),
+            "description": self.description,
+            "group_id": self.group_id,
+            "created_at": self.created_at,
+            "modified_at": self.modified_at,
+            "other_data": self.other_data.copy(),
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> HierarchicalShape:
+    def from_dict(cls, data: dict[str, Any]) -> HierarchicalShape:
         """
         Create shape from dictionary.
 
@@ -239,23 +240,25 @@ class HierarchicalShape:
             HierarchicalShape instance
         """
         return cls(
-            shape_id=data.get('shape_id', generate_uuid()),
-            label=data['label'],
-            points=data.get('points', []),
-            shape_type=data.get('shape_type', 'polygon'),
-            parent_id=data.get('parent_id'),
-            children_ids=data.get('children_ids', []),
-            attributes=data.get('attributes', {}),
-            flags=data.get('flags', {}),
-            description=data.get('description', ''),
-            group_id=data.get('group_id'),
-            created_at=data.get('created_at', datetime.utcnow().isoformat()),
-            modified_at=data.get('modified_at', datetime.utcnow().isoformat()),
-            other_data=data.get('other_data', {}),
+            shape_id=data.get("shape_id", generate_uuid()),
+            label=data["label"],
+            points=data.get("points", []),
+            shape_type=data.get("shape_type", "polygon"),
+            parent_id=data.get("parent_id"),
+            children_ids=data.get("children_ids", []),
+            attributes=data.get("attributes", {}),
+            flags=data.get("flags", {}),
+            description=data.get("description", ""),
+            group_id=data.get("group_id"),
+            created_at=data.get("created_at", datetime.utcnow().isoformat()),
+            modified_at=data.get("modified_at", datetime.utcnow().isoformat()),
+            other_data=data.get("other_data", {}),
         )
 
     @classmethod
-    def from_legacy_shape(cls, label: str, points: List[List[float]], **kwargs) -> HierarchicalShape:
+    def from_legacy_shape(
+        cls, label: str, points: list[list[float]], **kwargs
+    ) -> HierarchicalShape:
         """
         Create from legacy labelme shape format.
 
@@ -270,10 +273,10 @@ class HierarchicalShape:
         return cls(
             label=label,
             points=points,
-            shape_type=kwargs.get('shape_type', 'polygon'),
-            flags=kwargs.get('flags', {}),
-            description=kwargs.get('description', ''),
-            group_id=kwargs.get('group_id'),
+            shape_type=kwargs.get("shape_type", "polygon"),
+            flags=kwargs.get("flags", {}),
+            description=kwargs.get("description", ""),
+            group_id=kwargs.get("group_id"),
         )
 
     def copy(self) -> HierarchicalShape:
@@ -306,8 +309,8 @@ class ShapeCollection:
 
     def __init__(self):
         """Initialize empty shape collection."""
-        self._shapes: Dict[str, HierarchicalShape] = {}
-        self._root_shapes: Set[str] = set()  # Shapes without parents
+        self._shapes: dict[str, HierarchicalShape] = {}
+        self._root_shapes: set[str] = set()  # Shapes without parents
 
     def __len__(self) -> int:
         """Return number of shapes."""
@@ -358,11 +361,11 @@ class ShapeCollection:
     def create_shape(
         self,
         label: str,
-        points: List[List[float]],
+        points: list[list[float]],
         shape_type: str = "polygon",
-        parent_id: Optional[str] = None,
-        attributes: Optional[Dict[str, Any]] = None,
-        **kwargs
+        parent_id: str | None = None,
+        attributes: dict[str, Any] | None = None,
+        **kwargs,
     ) -> HierarchicalShape:
         """
         Create and add a new shape.
@@ -384,7 +387,7 @@ class ShapeCollection:
             shape_type=shape_type,
             parent_id=parent_id,
             attributes=attributes or {},
-            **kwargs
+            **kwargs,
         )
         return self.add_shape(shape)
 
@@ -392,9 +395,9 @@ class ShapeCollection:
         self,
         parent: HierarchicalShape,
         label: str,
-        points: List[List[float]],
+        points: list[list[float]],
         shape_type: str = "polygon",
-        attributes: Optional[Dict[str, Any]] = None,
+        attributes: dict[str, Any] | None = None,
     ) -> HierarchicalShape:
         """
         Create a child shape under a parent.
@@ -425,7 +428,7 @@ class ShapeCollection:
 
         return child
 
-    def get_shape(self, shape_id: str) -> Optional[HierarchicalShape]:
+    def get_shape(self, shape_id: str) -> HierarchicalShape | None:
         """
         Get shape by ID.
 
@@ -437,15 +440,15 @@ class ShapeCollection:
         """
         return self._shapes.get(shape_id)
 
-    def get_all_shapes(self) -> List[HierarchicalShape]:
+    def get_all_shapes(self) -> list[HierarchicalShape]:
         """Get all shapes as a list."""
         return list(self._shapes.values())
 
-    def get_root_shapes(self) -> List[HierarchicalShape]:
+    def get_root_shapes(self) -> list[HierarchicalShape]:
         """Get shapes that have no parent."""
         return [self._shapes[sid] for sid in self._root_shapes if sid in self._shapes]
 
-    def get_children(self, shape: HierarchicalShape) -> List[HierarchicalShape]:
+    def get_children(self, shape: HierarchicalShape) -> list[HierarchicalShape]:
         """
         Get all children of a shape.
 
@@ -455,13 +458,9 @@ class ShapeCollection:
         Returns:
             List of child shapes
         """
-        return [
-            self._shapes[cid]
-            for cid in shape.children_ids
-            if cid in self._shapes
-        ]
+        return [self._shapes[cid] for cid in shape.children_ids if cid in self._shapes]
 
-    def get_parent(self, shape: HierarchicalShape) -> Optional[HierarchicalShape]:
+    def get_parent(self, shape: HierarchicalShape) -> HierarchicalShape | None:
         """
         Get parent of a shape.
 
@@ -475,7 +474,7 @@ class ShapeCollection:
             return self._shapes.get(shape.parent_id)
         return None
 
-    def get_ancestors(self, shape: HierarchicalShape) -> List[HierarchicalShape]:
+    def get_ancestors(self, shape: HierarchicalShape) -> list[HierarchicalShape]:
         """
         Get all ancestors (parent, grandparent, etc.) of a shape.
 
@@ -496,7 +495,7 @@ class ShapeCollection:
                 break
         return ancestors
 
-    def get_descendants(self, shape: HierarchicalShape) -> List[HierarchicalShape]:
+    def get_descendants(self, shape: HierarchicalShape) -> list[HierarchicalShape]:
         """
         Get all descendants (children, grandchildren, etc.) of a shape.
 
@@ -517,10 +516,8 @@ class ShapeCollection:
         return descendants
 
     def remove_shape(
-        self,
-        shape_id: str,
-        remove_children: bool = True
-    ) -> List[HierarchicalShape]:
+        self, shape_id: str, remove_children: bool = True
+    ) -> list[HierarchicalShape]:
         """
         Remove a shape from the collection.
 
@@ -563,9 +560,7 @@ class ShapeCollection:
         return removed
 
     def reparent(
-        self,
-        shape: HierarchicalShape,
-        new_parent: Optional[HierarchicalShape]
+        self, shape: HierarchicalShape, new_parent: HierarchicalShape | None
     ) -> bool:
         """
         Change the parent of a shape.
@@ -596,7 +591,7 @@ class ShapeCollection:
         shape.update_metadata()
         return True
 
-    def get_shapes_by_label(self, label: str) -> List[HierarchicalShape]:
+    def get_shapes_by_label(self, label: str) -> list[HierarchicalShape]:
         """
         Get all shapes with a specific label.
 
@@ -608,7 +603,7 @@ class ShapeCollection:
         """
         return [s for s in self._shapes.values() if s.label == label]
 
-    def get_shapes_by_parent(self, parent_id: Optional[str]) -> List[HierarchicalShape]:
+    def get_shapes_by_parent(self, parent_id: str | None) -> list[HierarchicalShape]:
         """
         Get all shapes with a specific parent.
 
@@ -627,7 +622,7 @@ class ShapeCollection:
         self._shapes.clear()
         self._root_shapes.clear()
 
-    def to_dict_list(self) -> List[Dict[str, Any]]:
+    def to_dict_list(self) -> list[dict[str, Any]]:
         """
         Convert all shapes to list of dicts for serialization.
 
@@ -636,7 +631,7 @@ class ShapeCollection:
         """
         return [shape.to_dict() for shape in self._shapes.values()]
 
-    def from_dict_list(self, shapes_data: List[Dict[str, Any]]) -> None:
+    def from_dict_list(self, shapes_data: list[dict[str, Any]]) -> None:
         """
         Load shapes from list of dicts.
 
@@ -650,7 +645,7 @@ class ShapeCollection:
             if shape.parent_id is None:
                 self._root_shapes.add(shape.shape_id)
 
-    def validate_hierarchy(self) -> List[str]:
+    def validate_hierarchy(self) -> list[str]:
         """
         Validate hierarchy consistency.
 
@@ -662,22 +657,22 @@ class ShapeCollection:
         for shape in self._shapes.values():
             # Check parent reference
             if shape.parent_id and shape.parent_id not in self._shapes:
-                errors.append(
-                    f"Shape {shape.shape_id[:8]} references non-existent parent {shape.parent_id[:8]}"
-                )
+                sid = shape.shape_id[:8]
+                pid = shape.parent_id[:8]
+                errors.append(f"Shape {sid} references non-existent parent {pid}")
 
             # Check children references
             for child_id in shape.children_ids:
                 if child_id not in self._shapes:
-                    errors.append(
-                        f"Shape {shape.shape_id[:8]} references non-existent child {child_id[:8]}"
-                    )
+                    sid = shape.shape_id[:8]
+                    cid = child_id[:8]
+                    errors.append(f"Shape {sid} references non-existent child {cid}")
                 else:
                     child = self._shapes[child_id]
                     if child.parent_id != shape.shape_id:
-                        errors.append(
-                            f"Child {child_id[:8]} parent_id doesn't match parent {shape.shape_id[:8]}"
-                        )
+                        cid = child_id[:8]
+                        pid = shape.shape_id[:8]
+                        errors.append(f"Child {cid} parent_id doesn't match {pid}")
 
         return errors
 
@@ -699,10 +694,7 @@ class ShapeCollection:
 
         # Fix broken child references
         for shape in self._shapes.values():
-            valid_children = [
-                cid for cid in shape.children_ids
-                if cid in self._shapes
-            ]
+            valid_children = [cid for cid in shape.children_ids if cid in self._shapes]
             if len(valid_children) != len(shape.children_ids):
                 fixes += len(shape.children_ids) - len(valid_children)
                 shape.children_ids = valid_children
@@ -717,8 +709,7 @@ class ShapeCollection:
 
         # Update root shapes set
         self._root_shapes = {
-            sid for sid, shape in self._shapes.items()
-            if shape.parent_id is None
+            sid for sid, shape in self._shapes.items() if shape.parent_id is None
         }
 
         return fixes
