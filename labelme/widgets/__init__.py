@@ -11,3 +11,8 @@ from .label_list_widget import LabelListWidgetItem
 from .tool_bar import ToolBar
 from .unique_label_qlist_widget import UniqueLabelQListWidget
 from .zoom_widget import ZoomWidget
+
+# Hierarchical widgets
+from .hierarchy_panel import HierarchyPanel
+from .attribute_panel import AttributePanel, AttributePanelDock
+from .hierarchical_canvas import HierarchicalCanvas, DrawingMode
