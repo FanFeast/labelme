@@ -6,10 +6,10 @@ Run with: python -m pytest tests/test_hierarchical.py -v
 Or: python tests/test_hierarchical.py
 """
 
+import json
 import os
 import sys
 import tempfile
-import json
 from pathlib import Path
 
 # Add parent directory to path
@@ -17,14 +17,15 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pytest
 
-from labelme.schema_manager import SchemaManager, SchemaValidationError
-from labelme.hierarchical_shape import HierarchicalShape, ShapeCollection, generate_uuid
 from labelme.hierarchical_label_file import HierarchicalAnnotationFile
-
+from labelme.hierarchical_shape import HierarchicalShape
+from labelme.hierarchical_shape import ShapeCollection
+from labelme.schema_manager import SchemaManager
 
 # ============================================================================
 # Schema Manager Tests
 # ============================================================================
+
 
 class TestSchemaManager:
     """Tests for SchemaManager class."""
@@ -100,12 +101,18 @@ class TestSchemaManager:
     def test_check_attribute_visibility(self, schema):
         """Test conditional attribute visibility."""
         # length_cm is visible only when dimensions_known is True
-        assert schema.check_attribute_visibility(
-            "box", "length_cm", {"dimensions_known": True}
-        ) is True
-        assert schema.check_attribute_visibility(
-            "box", "length_cm", {"dimensions_known": False}
-        ) is False
+        assert (
+            schema.check_attribute_visibility(
+                "box", "length_cm", {"dimensions_known": True}
+            )
+            is True
+        )
+        assert (
+            schema.check_attribute_visibility(
+                "box", "length_cm", {"dimensions_known": False}
+            )
+            is False
+        )
 
     def test_get_shortcuts(self, schema):
         """Test getting keyboard shortcuts."""
@@ -123,14 +130,14 @@ class TestSchemaManager:
 # HierarchicalShape Tests
 # ============================================================================
 
+
 class TestHierarchicalShape:
     """Tests for HierarchicalShape class."""
 
     def test_create_shape(self):
         """Test creating a shape."""
         shape = HierarchicalShape(
-            label="box",
-            points=[[0, 0], [100, 0], [100, 100], [0, 100]]
+            label="box", points=[[0, 0], [100, 0], [100, 100], [0, 100]]
         )
         assert shape.label == "box"
         assert len(shape.points) == 4
@@ -181,7 +188,7 @@ class TestHierarchicalShape:
         shape = HierarchicalShape(
             label="box",
             points=[[0, 0], [100, 100]],
-            attributes={"box_type": "cardboard"}
+            attributes={"box_type": "cardboard"},
         )
         data = shape.to_dict()
 
@@ -197,7 +204,7 @@ class TestHierarchicalShape:
             "label": "box",
             "points": [[0, 0], [100, 100]],
             "shape_type": "polygon",
-            "attributes": {"box_type": "plastic"}
+            "attributes": {"box_type": "plastic"},
         }
         shape = HierarchicalShape.from_dict(data)
 
@@ -210,7 +217,7 @@ class TestHierarchicalShape:
         original = HierarchicalShape(
             label="box",
             points=[[0, 0], [100, 100]],
-            attributes={"box_type": "cardboard"}
+            attributes={"box_type": "cardboard"},
         )
         copy = original.copy()
 
@@ -224,6 +231,7 @@ class TestHierarchicalShape:
 # ShapeCollection Tests
 # ============================================================================
 
+
 class TestShapeCollection:
     """Tests for ShapeCollection class."""
 
@@ -232,7 +240,7 @@ class TestShapeCollection:
         collection = ShapeCollection()
         shape = HierarchicalShape(label="box", points=[])
 
-        added = collection.add_shape(shape)
+        collection.add_shape(shape)
 
         assert len(collection) == 1
         assert shape.shape_id in collection
@@ -240,10 +248,7 @@ class TestShapeCollection:
     def test_create_shape(self):
         """Test creating shapes."""
         collection = ShapeCollection()
-        shape = collection.create_shape(
-            label="box",
-            points=[[0, 0], [100, 100]]
-        )
+        shape = collection.create_shape(label="box", points=[[0, 0], [100, 100]])
 
         assert len(collection) == 1
         assert shape.label == "box"
@@ -253,9 +258,7 @@ class TestShapeCollection:
         collection = ShapeCollection()
         parent = collection.create_shape(label="box", points=[])
         child = collection.create_child(
-            parent=parent,
-            label="face",
-            points=[[10, 10], [50, 50]]
+            parent=parent, label="face", points=[[10, 10], [50, 50]]
         )
 
         assert len(collection) == 2
@@ -293,7 +296,7 @@ class TestShapeCollection:
         """Test removing shape with children."""
         collection = ShapeCollection()
         parent = collection.create_shape(label="box", points=[])
-        child = collection.create_child(parent, label="face", points=[])
+        collection.create_child(parent, label="face", points=[])
 
         removed = collection.remove_shape(parent.shape_id, remove_children=True)
 
@@ -340,7 +343,7 @@ class TestShapeCollection:
         """Test hierarchy validation."""
         collection = ShapeCollection()
         parent = collection.create_shape(label="box", points=[])
-        child = collection.create_child(parent, label="face", points=[])
+        collection.create_child(parent, label="face", points=[])
 
         errors = collection.validate_hierarchy()
 
@@ -350,6 +353,7 @@ class TestShapeCollection:
 # ============================================================================
 # HierarchicalAnnotationFile Tests
 # ============================================================================
+
 
 class TestHierarchicalAnnotationFile:
     """Tests for HierarchicalAnnotationFile class."""
@@ -380,13 +384,12 @@ class TestHierarchicalAnnotationFile:
             file1.image_height = 480
 
             box = file1.shapes.create_shape(
-                label="box",
-                points=[[0, 0], [100, 0], [100, 100], [0, 100]]
+                label="box", points=[[0, 0], [100, 0], [100, 100], [0, 100]]
             )
-            face = file1.shapes.create_child(
+            file1.shapes.create_child(
                 parent=box,
                 label="face",
-                points=[[10, 10], [50, 10], [50, 50], [10, 50]]
+                points=[[10, 10], [50, 10], [50, 50], [10, 50]],
             )
 
             file1.save(temp_path, include_image_data=False)
@@ -419,12 +422,12 @@ class TestHierarchicalAnnotationFile:
                     "label": "box",
                     "points": [[0, 0], [100, 100]],
                     "shape_type": "polygon",
-                    "flags": {}
+                    "flags": {},
                 }
-            ]
+            ],
         }
 
-        with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode='w') as f:
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w") as f:
             json.dump(legacy_data, f)
             temp_path = f.name
 
@@ -452,8 +455,7 @@ class TestHierarchicalAnnotationFile:
             file.image_height = 480
 
             file.shapes.create_shape(
-                label="box",
-                points=[[0, 0], [100, 0], [100, 100], [0, 100]]
+                label="box", points=[[0, 0], [100, 0], [100, 100], [0, 100]]
             )
 
             file.export_coco(temp_path)
@@ -479,8 +481,7 @@ class TestHierarchicalAnnotationFile:
             file.image_height = 480
 
             file.shapes.create_shape(
-                label="box",
-                points=[[0, 0], [100, 0], [100, 100], [0, 100]]
+                label="box", points=[[0, 0], [100, 0], [100, 100], [0, 100]]
             )
 
             file.export_yolo(temp_dir)
@@ -512,6 +513,7 @@ class TestHierarchicalAnnotationFile:
 # Integration Tests
 # ============================================================================
 
+
 class TestIntegration:
     """Integration tests for hierarchical annotation system."""
 
@@ -533,7 +535,7 @@ class TestIntegration:
         box = file.shapes.create_shape(
             label="box",
             points=[[100, 100], [300, 100], [300, 300], [100, 300]],
-            attributes=schema.get_all_defaults("box")
+            attributes=schema.get_all_defaults("box"),
         )
 
         # Validate we can add face as child
@@ -544,7 +546,7 @@ class TestIntegration:
             parent=box,
             label="face",
             points=[[110, 110], [200, 110], [200, 200], [110, 200]],
-            attributes=schema.get_all_defaults("face")
+            attributes=schema.get_all_defaults("face"),
         )
 
         # Set face attributes
@@ -556,7 +558,7 @@ class TestIntegration:
             parent=face,
             label="barcode",
             points=[[120, 120], [180, 120], [180, 140], [120, 140]],
-            attributes=schema.get_all_defaults("barcode")
+            attributes=schema.get_all_defaults("barcode"),
         )
 
         # Verify hierarchy
