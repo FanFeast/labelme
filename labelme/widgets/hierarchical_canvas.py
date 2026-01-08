@@ -288,11 +288,13 @@ class HierarchicalCanvas(QtWidgets.QWidget):
         Returns:
             List of selected shapes
         """
-        return [
-            self.shapes.get_shape(sid)
-            for sid in self.selected_shapes
-            if sid in self.shapes
-        ]
+        result: list[HierarchicalShape] = []
+        for sid in self.selected_shapes:
+            if sid in self.shapes:
+                shape = self.shapes.get_shape(sid)
+                if shape is not None:
+                    result.append(shape)
+        return result
 
     # Mouse events
 
@@ -354,24 +356,28 @@ class HierarchicalCanvas(QtWidgets.QWidget):
             self.cancel_drawing()
             return
 
+        # Ensure we have a class selected
+        if not self.current_class:
+            self.cancel_drawing()
+            return
+
+        label = self.current_class  # Store in typed variable
+
         # Determine shape type based on class schema
         shape_type = "polygon"
-        if self.current_class:
-            types = self.schema_manager.get_shape_types(self.current_class)
-            if types:
-                shape_type = types[0]
+        types = self.schema_manager.get_shape_types(label)
+        if types:
+            shape_type = types[0]
 
         # Get default attributes
-        attributes = {}
-        if self.current_class:
-            attributes = self.schema_manager.get_all_defaults(self.current_class)
+        attributes = self.schema_manager.get_all_defaults(label)
 
         # Create shape
         if self.mode == DrawingMode.CREATE_CHILD and self.current_parent:
             # Create as child
             shape = self.shapes.create_child(
                 parent=self.current_parent,
-                label=self.current_class,
+                label=label,
                 points=self.current_points,
                 shape_type=shape_type,
                 attributes=attributes,
@@ -380,7 +386,7 @@ class HierarchicalCanvas(QtWidgets.QWidget):
         else:
             # Create as root shape
             shape = self.shapes.create_shape(
-                label=self.current_class,
+                label=label,
                 points=self.current_points,
                 shape_type=shape_type,
                 attributes=attributes,

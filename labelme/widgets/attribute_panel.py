@@ -478,7 +478,7 @@ class AttributePanel(QtWidgets.QWidget):
         Returns:
             List of error messages
         """
-        errors = []
+        errors: list[str] = []
 
         if not self.current_shape:
             return errors
@@ -501,7 +501,7 @@ class AttributePanel(QtWidgets.QWidget):
                 valid, error = self.schema_manager.validate_attribute_value(
                     self.current_shape.label, attr_name, value
                 )
-                if not valid:
+                if not valid and error is not None:
                     errors.append(error)
 
         return errors
