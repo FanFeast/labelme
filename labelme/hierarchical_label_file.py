@@ -22,7 +22,7 @@ try:
 
     HAS_NUMPY = True
 except ImportError:
-    np = None
+    np = None  # type: ignore[assignment]
     HAS_NUMPY = False
 
 try:
@@ -30,7 +30,7 @@ try:
 
     HAS_PIL = True
 except ImportError:
-    Image = None
+    Image = None  # type: ignore[assignment]
     HAS_PIL = False
 
 from labelme.hierarchical_shape import HierarchicalShape

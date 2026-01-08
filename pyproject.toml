@@ -85,3 +85,11 @@ force-single-line = true
 [tool.mypy]
 check_untyped_defs = true
 ignore_missing_imports = true
+
+[tool.ty.rules]
+# Ignore unresolved imports for external dependencies
+unresolved-import = "ignore"
+# Ignore invalid assignments for optional imports (e.g., np = None when numpy not available)
+invalid-assignment = "ignore"
+# Ignore possibly-missing-attribute for conditional imports
+possibly-missing-attribute = "warn"

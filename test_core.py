@@ -16,8 +16,12 @@ base_dir = os.path.dirname(os.path.abspath(__file__))
 def load_module(name, filepath):
     """Load a module directly without triggering package __init__.py."""
     spec = importlib.util.spec_from_file_location(name, filepath)
+    if spec is None:
+        raise ImportError(f"Cannot load module spec from {filepath}")
     module = importlib.util.module_from_spec(spec)
     sys.modules[name] = module
+    if spec.loader is None:
+        raise ImportError(f"No loader for module spec from {filepath}")
     spec.loader.exec_module(module)
     return module
 

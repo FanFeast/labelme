@@ -12,6 +12,7 @@ import uuid
 from dataclasses import dataclass
 from dataclasses import field
 from datetime import datetime
+from datetime import timezone
 from typing import Any
 
 # Qt is optional - only needed for get_qpoints()
@@ -21,7 +22,7 @@ try:
     HAS_QT = True
 except ImportError:
     HAS_QT = False
-    QtCore = None
+    QtCore = None  # type: ignore[assignment]
 
 
 def generate_uuid() -> str:
@@ -75,8 +76,12 @@ class HierarchicalShape:
     group_id: int | None = None
 
     # Timestamps
-    created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
-    modified_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+    modified_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
     # Extensible data
     other_data: dict[str, Any] = field(default_factory=dict)
@@ -175,7 +180,7 @@ class HierarchicalShape:
 
     def update_metadata(self) -> None:
         """Update the modified_at timestamp."""
-        self.modified_at = datetime.utcnow().isoformat()
+        self.modified_at = datetime.now(timezone.utc).isoformat()
 
     def add_point(self, x: float, y: float) -> None:
         """Add a point to the shape."""
@@ -250,8 +255,8 @@ class HierarchicalShape:
             flags=data.get("flags", {}),
             description=data.get("description", ""),
             group_id=data.get("group_id"),
-            created_at=data.get("created_at", datetime.utcnow().isoformat()),
-            modified_at=data.get("modified_at", datetime.utcnow().isoformat()),
+            created_at=data.get("created_at", datetime.now(timezone.utc).isoformat()),
+            modified_at=data.get("modified_at", datetime.now(timezone.utc).isoformat()),
             other_data=data.get("other_data", {}),
         )
 
@@ -285,7 +290,7 @@ class HierarchicalShape:
         new_shape.shape_id = generate_uuid()
         new_shape.children_ids = []  # Don't copy children references
         new_shape.parent_id = None  # Don't copy parent reference
-        new_shape.created_at = datetime.utcnow().isoformat()
+        new_shape.created_at = datetime.now(timezone.utc).isoformat()
         new_shape.modified_at = new_shape.created_at
         return new_shape
 
