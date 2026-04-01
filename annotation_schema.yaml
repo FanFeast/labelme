@@ -1,0 +1,309 @@
+# Annotation Schema for Hierarchical Labelme
+# This schema defines classes, their hierarchy rules, and attributes
+
+version: "1.0"
+
+# Global settings
+settings:
+  default_shape_type: polygon
+  allow_orphan_shapes: false  # If false, shapes without valid parent are warned
+  max_hierarchy_depth: 5
+
+# Class definitions
+classes:
+  # Box class - top-level annotation
+  box:
+    display_name: "Box"
+    description: "A shipping/storage box or container"
+    color: "#3498db"  # Blue
+    shape_types: [polygon, rectangle]
+    requires_parent: false
+    allowed_children: [face, label, barcode, damage]
+    attributes:
+      box_type:
+        type: dropdown
+        label: "Box Type"
+        options: ["cardboard", "plastic", "metal", "wood", "other"]
+        default: "cardboard"
+        required: true
+      condition:
+        type: dropdown
+        label: "Condition"
+        options: ["new", "good", "worn", "damaged"]
+        default: "good"
+      dimensions_known:
+        type: checkbox
+        label: "Dimensions Known"
+        default: false
+      length_cm:
+        type: spinbox
+        label: "Length (cm)"
+        min: 1
+        max: 500
+        default: 30
+        visible_if:
+          field: dimensions_known
+          value: true
+      width_cm:
+        type: spinbox
+        label: "Width (cm)"
+        min: 1
+        max: 500
+        default: 20
+        visible_if:
+          field: dimensions_known
+          value: true
+      height_cm:
+        type: spinbox
+        label: "Height (cm)"
+        min: 1
+        max: 500
+        default: 15
+        visible_if:
+          field: dimensions_known
+          value: true
+      notes:
+        type: text
+        label: "Notes"
+        default: ""
+        max_length: 500
+
+  # Face class - child of box
+  face:
+    display_name: "Box Face"
+    description: "A visible face/side of a box"
+    color: "#2ecc71"  # Green
+    shape_types: [polygon]
+    requires_parent: true
+    allowed_parents: [box]
+    allowed_children: [label, barcode, damage]
+    attributes:
+      face_type:
+        type: dropdown
+        label: "Face Type"
+        options: ["front", "back", "left", "right", "top", "bottom"]
+        default: "front"
+        required: true
+      occlusion:
+        type: slider
+        label: "Occlusion %"
+        min: 0
+        max: 100
+        step: 5
+        default: 0
+      readable:
+        type: checkbox
+        label: "Readable/Clear"
+        default: true
+      has_text:
+        type: checkbox
+        label: "Has Text"
+        default: false
+      text_content:
+        type: text
+        label: "Text Content"
+        default: ""
+        visible_if:
+          field: has_text
+          value: true
+
+  # Label class - child of box or face
+  label:
+    display_name: "Label"
+    description: "A shipping label or sticker"
+    color: "#f39c12"  # Orange
+    shape_types: [polygon, rectangle]
+    requires_parent: true
+    allowed_parents: [box, face]
+    allowed_children: [barcode]
+    attributes:
+      label_type:
+        type: dropdown
+        label: "Label Type"
+        options: ["shipping", "fragile", "hazmat", "barcode", "custom", "other"]
+        default: "shipping"
+        required: true
+      readable:
+        type: checkbox
+        label: "Readable"
+        default: true
+      text_content:
+        type: text
+        label: "Text Content"
+        default: ""
+
+  # Barcode class - child of box, face, or label
+  barcode:
+    display_name: "Barcode"
+    description: "A barcode or QR code"
+    color: "#9b59b6"  # Purple
+    shape_types: [polygon, rectangle]
+    requires_parent: true
+    allowed_parents: [box, face, label]
+    allowed_children: []
+    attributes:
+      barcode_type:
+        type: dropdown
+        label: "Barcode Type"
+        options: ["1D", "QR", "DataMatrix", "other"]
+        default: "1D"
+        required: true
+      value:
+        type: text
+        label: "Barcode Value"
+        default: ""
+      scannable:
+        type: checkbox
+        label: "Scannable"
+        default: true
+
+  # Damage class - child of box or face
+  damage:
+    display_name: "Damage"
+    description: "Damaged area of box or face"
+    color: "#e74c3c"  # Red
+    shape_types: [polygon]
+    requires_parent: true
+    allowed_parents: [box, face]
+    allowed_children: []
+    attributes:
+      damage_type:
+        type: dropdown
+        label: "Damage Type"
+        options: ["tear", "dent", "crush", "water", "puncture", "other"]
+        default: "dent"
+        required: true
+      severity:
+        type: slider
+        label: "Severity"
+        min: 1
+        max: 5
+        step: 1
+        default: 2
+      affects_contents:
+        type: checkbox
+        label: "May Affect Contents"
+        default: false
+
+  # Wall class - top-level (for warehouse scenes)
+  wall:
+    display_name: "Wall"
+    description: "A wall or vertical surface"
+    color: "#7f8c8d"  # Gray
+    shape_types: [polygon]
+    requires_parent: false
+    allowed_children: [shelf]
+    attributes:
+      wall_type:
+        type: dropdown
+        label: "Wall Type"
+        options: ["concrete", "drywall", "metal", "other"]
+        default: "concrete"
+
+  # Shelf class - child of wall
+  shelf:
+    display_name: "Shelf"
+    description: "A shelf or rack"
+    color: "#1abc9c"  # Teal
+    shape_types: [polygon, rectangle]
+    requires_parent: true
+    allowed_parents: [wall]
+    allowed_children: [box]
+    attributes:
+      shelf_level:
+        type: spinbox
+        label: "Shelf Level"
+        min: 1
+        max: 20
+        default: 1
+      capacity:
+        type: dropdown
+        label: "Load Capacity"
+        options: ["light", "medium", "heavy"]
+        default: "medium"
+
+  # Person class - top-level
+  person:
+    display_name: "Person"
+    description: "A person in the scene"
+    color: "#e91e63"  # Pink
+    shape_types: [polygon, rectangle]
+    requires_parent: false
+    allowed_children: [hand, face_person]
+    attributes:
+      role:
+        type: dropdown
+        label: "Role"
+        options: ["worker", "visitor", "unknown"]
+        default: "worker"
+      visible_percentage:
+        type: slider
+        label: "Visible %"
+        min: 0
+        max: 100
+        step: 10
+        default: 100
+
+  # Hand class - child of person
+  hand:
+    display_name: "Hand"
+    description: "A person's hand"
+    color: "#ff9800"  # Amber
+    shape_types: [polygon]
+    requires_parent: true
+    allowed_parents: [person]
+    allowed_children: []
+    attributes:
+      side:
+        type: dropdown
+        label: "Side"
+        options: ["left", "right", "unknown"]
+        default: "unknown"
+      holding_object:
+        type: checkbox
+        label: "Holding Object"
+        default: false
+
+  # Face (person) class - child of person
+  face_person:
+    display_name: "Face (Person)"
+    description: "A person's face"
+    color: "#ffeb3b"  # Yellow
+    shape_types: [polygon, rectangle]
+    requires_parent: true
+    allowed_parents: [person]
+    allowed_children: []
+    attributes:
+      visible:
+        type: checkbox
+        label: "Face Visible"
+        default: true
+      orientation:
+        type: dropdown
+        label: "Orientation"
+        options: ["frontal", "profile_left", "profile_right", "back", "partial"]
+        default: "frontal"
+
+# Keyboard shortcuts for quick class selection
+shortcuts:
+  b: box
+  f: face
+  l: label
+  c: barcode  # 'c' for code
+  d: damage
+  w: wall
+  s: shelf
+  p: person
+
+# Display order in UI
+display_order:
+  - box
+  - face
+  - label
+  - barcode
+  - damage
+  - wall
+  - shelf
+  - person
+  - hand
+  - face_person
